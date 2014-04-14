@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html style="height:100%;" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>LocalChat</title>
+    <script type="text/javascript" src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <script src="//api-maps.yandex.ru/2.0/?load=package.full&lang=ru-RU" type="text/javascript"></script>
+    <script src="../static/js/main.js" type="text/javascript"></script>
+</head>
+<body style="height:100%;"> 
+    <div id="map" style="width:100%; height:100%;"></div>
+        <script type="text/javascript">
+
+            function coordindats(position) {
+                latitude = position.coords.latitude;
+                longitude = position.coords.longitude;
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(coordindats); 
+
+                var points = {{ points|safe }};
+
+  			    var myMap;
+
+			    ymaps.ready(init);
+
+    			function init () {
+        		  	var geolocation = ymaps.geolocation,
+
+                    coords = [latitude, longitude];
+                    myMap = new ymaps.Map('map', {
+                        center: coords,
+                        zoom: 15,
+                        controls : []
+                    });
+
+
+                    myMap.behaviors.disable(["drag", "dblClickZoom", "rightMouseButtonMagnifier", "multiTouch"]);
+
+                    myCollection = new ymaps.GeoObjectCollection({}, {});
+        	       myMap.geoObjects.add(myCollection);
+
+                    for (i = 0; i < points.length; i++){
+                        var req = '<input type="button" onclick="$.ajax({url: \'http://127.0.0.1:8000\', type: \'get\', data:{\'foo\':\'bar\'}}); ">'
+                        myCollection.add(new ymaps.Placemark([points[i][0], points[i][1]], {iconContent: points[i][2], hintContent: 'Кликните, что бы перейти к чату',
+                            balloonContentBody: ["<div>", points[i][2],"</div>", "<br>",
+                                                "<div>", points[i][3],"</div>",
+                                                "<form class='chat' method='post'>", "{% csrf_token %}",
+                                                "<input type='hidden' value='", points[i][0], "' name='x'>",
+                                                "<input type='hidden' value='", points[i][1], "' name='y'>",
+                                                "<textarea name='message' id='chat", String(i),"' style='resize:none'>", "</textarea>", 
+                                                "<input type='submit'>", "</form>"].join('')
+                        },{preset:'twirl#blueStretchyIcon'}));
+                    }  
+
+                    var balloon = null;
+
+                    myMap.events.add('dblclick', function (e) {
+                        balloon = myMap.balloon.open(e.get('coordPosition'), 
+                            ["<center>", 
+                            "<form class='point' method='post' action=''>", "{% csrf_token %}", 
+                            "<input type='text' name='chat_name' placeholder = 'Название беседы'>", 
+                            "<br>",
+                            "<textarea name='message' style='resize:none; width:90%' placeholder='Ваше сообщение'>", "</textarea>",
+                            "<input type='hidden' value =", String(e.get('coordPosition')[0]), " name='x'>", 
+                            "<input type='hidden' value =", String(e.get('coordPosition')[1]), " name='y'>", 
+                            "<br>", "<input type='submit'>", "</form>", "</center>"].join(''));
+                    });
+                }   
+            } else {
+                alert("Geolocation не поддерживается данным браузером");
+            }
+  		</script>
+
+</body>
+</html>
